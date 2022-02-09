@@ -74,6 +74,21 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
  * @see ConditionalOnClass
  * @see AutoConfigureAfter
  * @see SpringBootApplication
+ *
+ * 自动配置中使用的条件化注解
+ *
+ * @ConditionalOnBean 配置了某个特定Bean
+ * @ConditionalOnMissingBean 没有配置特定的Bean
+ * @ConditionOnClass   Classpath里有指定的类
+ * @ConditionOnMissingClass  Classpath里缺少指定的类
+ * @ConditionOnExpression   给定的Spring Expression Language (SpEL)表达式计算结果为True
+ * @ConditionOnJava      Java的版本匹配特定值或者一个范围值
+ * @ConditionOnJndi      参数中给定的JNDI位置必须存在一个，如果没有给参数，则要有JNDI InitialContext
+ * @ConditionOnProperty  指定的配置属性要有一个明确的值
+ * @ConditionOnResource  Classpath里有指定的资源
+ * @ConditionOnWebApplication  这是一个Web应用程序
+ * @ConditionOnNotWebApplication  这不是一个Web应用程序
+ *
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

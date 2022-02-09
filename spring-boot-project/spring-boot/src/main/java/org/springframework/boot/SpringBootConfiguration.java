@@ -39,6 +39,10 @@ import org.springframework.core.annotation.AliasFor;
  * @author Phillip Webb
  * @author Andy Wilkinson
  * @since 1.4.0
+ *
+ * @SpringBootConfiguration和@Configuration有相同的作用，配备了该注解的类就能够以JavaConfig的方式
+ * 完成一些配置，可以不再使用XML配置
+ *
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

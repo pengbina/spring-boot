@@ -88,13 +88,25 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 
 	private ResourceLoader resourceLoader;
 
+	/**
+	 * 最主要的方法
+	 * annotationMetadata
+	 * [@org.springframework.boot.autoconfigure.SpringBootApplication
+	 * (scanBasePackageClasses=[], excludeName=[], exclude=[], scanBasePackages=[])]
+	 * @param annotationMetadata
+	 * @return
+	 */
 	@Override
 	public String[] selectImports(AnnotationMetadata annotationMetadata) {
 		if (!isEnabled(annotationMetadata)) {
 			return NO_IMPORTS;
 		}
+		/**
+		 * 加载META-INF/spring-autoconfigure-metadata.properties，获取所有支持自动配置的信息
+		 */
 		AutoConfigurationMetadata autoConfigurationMetadata = AutoConfigurationMetadataLoader
 				.loadMetadata(this.beanClassLoader);
+
 		AutoConfigurationEntry autoConfigurationEntry = getAutoConfigurationEntry(autoConfigurationMetadata,
 				annotationMetadata);
 		return StringUtils.toStringArray(autoConfigurationEntry.getConfigurations());
@@ -112,13 +124,42 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 		if (!isEnabled(annotationMetadata)) {
 			return EMPTY_ENTRY;
 		}
+		/**
+		 * 得到注解中的所有属性信息{excludeName=[], exclude=[]}
+		 */
 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
+		/**
+		 * 获取所有支持EnableAutoConfiguration的组件信息，这部分信息配置在spring-boot-autoconfig包下的spring.factories下
+		 *
+		 *  使用了内部工具使用SpringFactoriesLoader，查找classpath上所有jar包中的
+		 *  META-INF\spring.factories，找出其中key为
+		 *  org.springframework.boot.autoconfigure.EnableAutoConfiguration
+		 *  的属性定义的工厂类名称。
+		 */
 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
 		configurations = removeDuplicates(configurations);
+		/**
+		 * 去除不需要的
+		 * @EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class, RedisAutoConfiguration.class,
+		   DataSourceTransactionManagerAutoConfiguration.class, })
+		 */
 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
 		checkExcludedClasses(configurations, exclusions);
 		configurations.removeAll(exclusions);
+		/**
+		 * 然后使用AutoConfigurationImportFilter进行过滤，过滤的方式基本上是判断现有系统是否引入了某个组件，（系统是否使用哪个组件是在pom定义的时候就确定了的）
+		 * ，如果有的话则进行相关配置。比如ServletWebServerFactoryAutoConfiguration
+		 * ，会在ServletRequest.class等条件存在的情况下进行配置，
+		 * 而EmbeddedTomcat会在Servlet.class, Tomcat.class存在的情况下创建TomcatServletWebServerFactory
+		 *
+		 * org.springframework.boot.autoconfigure.condition.OnClassCondition
+		 * 总而言之，此过滤器会检查候选配置类的注解@ConditionalOnClass，如果要求的类在classpath中不存在，则这个候选配置类会被排除掉
+		 */
 		configurations = filter(configurations, autoConfigurationMetadata);
+		/**
+		 * 现在已经找到所有需要被应用的候选配置类
+		 * 广播事件AutoConfigurationImportEvent
+		 */
 		fireAutoConfigurationImportEvents(configurations, exclusions);
 		return new AutoConfigurationEntry(configurations, exclusions);
 	}

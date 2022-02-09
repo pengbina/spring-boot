@@ -44,6 +44,11 @@ import org.springframework.data.repository.Repository;
  * @author Stephane Nicoll
  * @author Andy Wilkinson
  * @since 1.2.0
+ *
+ * @SpringBootApplication实际是@SpringBootConfiguration,@EnableAutoConfiguration以及@ComponentScan的组合
+ * @ComponentScan注解完成的是自动扫描的功能，相当于Spring XML配置文件中的
+ * <context:component-scan></context:component-scan>
+ *
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
