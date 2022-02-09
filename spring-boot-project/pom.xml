@@ -2,6 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-build</artifactId>
@@ -13,6 +14,11 @@
 	<description>Spring Boot Project</description>
 	<properties>
 		<main.basedir>${basedir}/..</main.basedir>
+		<!-- 文件拷贝时的编码 -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<!-- 编译时的编码 -->
+		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 	</properties>
 	<modules>
 		<module>spring-boot-dependencies</module>
@@ -29,5 +35,27 @@
 		<module>spring-boot-starters</module>
 		<module>spring-boot-cli</module>
 		<module>spring-boot-docs</module>
-	</modules>
+        <module>spring-boot-demo</module>
+    </modules>
+	
+	<build>
+     <plugins>
+         <plugin>
+             <groupId>org.codehaus.mojo</groupId>
+             <artifactId>exec-maven-plugin</artifactId>
+             <version>1.6.0</version>
+             <executions>
+                 <execution>
+                     <goals>
+                         <goal>java</goal>
+                     </goals>
+                 </execution>
+             </executions>
+             <configuration>
+                 <classpathScope>test</classpathScope>
+             </configuration>
+         </plugin>
+     </plugins>
+</build>
+
 </project>
