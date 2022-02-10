@@ -268,9 +268,27 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		//推断应用类型，Standard还是Web
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
+		/**
+		 * 设置初始化器(Initializer)
+		 * getSpringFactoriesInstances(ApplicationContextInitializer.class)
+		 * 从类路径的META-INF/spring.factories处读取相应配置文件，然后进行遍历，读取配置文件中Key为：
+		 * org.springframework.context.ApplicationContextInitializer的value
+		 * value是一系列类名，实例化后this.initializers.addAll(initializers);全部set到SpringApplication中
+		 * 在Spring上下文被刷新之前进行初始化的操作。典型地比如在Web应用中，注册Property Sources或者是激活Profiles。
+		 * Property Sources比较好理解，就是配置文件。Profiles是Spring为了在不同环境下(如DEV，TEST，PRODUCTION等)，加载不同的配置项而抽象出来的一个实体
+		 * ConfigurableApplicationContext.refresh()或SpringApplication.run()中用到
+		 *
+		 */
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		/**
+		 * 设置setListeners，设置方式和初始化器一样
+		 */
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		/**
+		 * 获取入口类的信息
+		 */
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -296,28 +314,46 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		//计时工具
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		// 设置java.awt.headless系统属性为true - 没有图形化界面
 		configureHeadlessProperty();
+		/**
+		 * 获取SpringApplicationRunListeners
+		 * getSpringFactoriesInstances方法，从META-INF/spring.factories中读取
+		 * Key为org.springframework.boot.SpringApplicationRunListener的Values
+		 * SpringApplicationEvent：它会利用一个内部的ApplicationEventMulticaster在上下文实际被刷新之前对事件进行处理
+		 * 它实际上是一个事件中转器，它能够感知到Spring Boot启动过程中产生的事件，然后有选择性的将事件进行中转
+		 */
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 发出开始执行的事件
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			//根据SpringApplicationRunListeners以及参数来准备环境
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
+			// 准备Banner打印器-就是启动SpringBoot的时候打印在console上的ASCII艺术字体
 			Banner printedBanner = printBanner(environment);
+			// 创建Spring上下文,根据之前获得的应用类型，创建ConfigurableApplicationContext实列可以看到实际上创建的是AnnotationConfigApplicationContext或AnnotationConfigEmbeddedWebApplicationContext。
 			context = createApplicationContext();
+			//SpringBootExceptionReporter,在spring.factories中能看到
 			exceptionReporters = getSpringFactoriesInstances(SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			// Spring上下文前置处理，prepareContext方法中将会执行每个initializers的逻辑
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
+			// Spring上下文刷新
 			refreshContext(context);
+			// Spring上下文后置处理
 			afterRefresh(context, applicationArguments);
 			stopWatch.stop();
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass).logStarted(getApplicationLog(), stopWatch);
 			}
+			// 发出结束执行的事件
 			listeners.started(context);
 			callRunners(context, applicationArguments);
 		}
@@ -367,6 +403,7 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 		context.setEnvironment(environment);
 		postProcessApplicationContext(context);
+		//调用之前准备好的ApplicationContextInitializer
 		applyInitializers(context);
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
@@ -390,6 +427,7 @@ public class SpringApplication {
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
 		load(context, sources.toArray(new Object[0]));
+		//将SpringApplication自己拥有的ApplicationListener加入到ApplicationContext,发送ApplicationPreparedEvent
 		listeners.contextLoaded(context);
 	}
 
