@@ -42,6 +42,20 @@ import org.springframework.util.ErrorHandler;
  * @author Andy Wilkinson
  * @author Artsiom Yudovin
  * @since 1.0.0
+ *
+ * 在SimpleApplicationEventMulticaster父类AbstractApplicationEventMulticaster中。
+ * 关键代码为this.defaultRetriever.applicationListeners.add(listener);，
+ * 这是一个内部类，用来保存所有的监听器。也就是在这一步，将spring.factories中的监听器传递到SimpleApplicationEventMulticaster中。
+ * 我们现在知道EventPublishingRunListener中有一个广播器SimpleApplicationEventMulticaster，SimpleApplicationEventMulticaster广播器中又存放所有的监听器。
+ * 启动监听器
+ * 我们上面一步通过getRunListeners方法获取的监听器为EventPublishingRunListener，从名字可以看出是启动事件发布监听器，主要用来发布启动事件。
+ * 先来看看SpringApplicationRunListener这个接口
+ *
+ * 监听器
+ * LoggingApplicationListener
+ * BackgroundPreinitilizer
+ * DelegatingApplicationListener
+ * LiquibaseServiceLocatorApplicationListener
  */
 public class EventPublishingRunListener implements SpringApplicationRunListener, Ordered {
 
@@ -67,6 +81,7 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 
 	@Override
 	public void starting() {
+		//关键代码，先创建application启动事件`ApplicationStartingEvent`
 		this.initialMulticaster.multicastEvent(new ApplicationStartingEvent(this.application, this.args));
 	}
 

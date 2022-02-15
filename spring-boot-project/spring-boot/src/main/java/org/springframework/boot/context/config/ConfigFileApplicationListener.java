@@ -181,6 +181,20 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 		}
 	}
 
+	/**
+	 * 首先还是会去读spring.factories 文件，List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();获取的处理类有以下四种：
+	 *
+	 * # Environment Post Processors
+	 * org.springframework.boot.env.EnvironmentPostProcessor=
+	 * org.springframework.boot.cloud.CloudFoundryVcapEnvironmentPostProcessor，
+	 * org.springframework.boot.env.SpringApplicationJsonEnvironmentPostProcessor，
+	 * org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor
+	 *
+	 * 在执行完上述三个监听器流程后，ConfigFileApplicationListener会执行该类本身的逻辑。由其内部类Loader加载项目制定路径下的配置文件：
+	 *
+	 * private static final String DEFAULT_SEARCH_LOCATIONS = "classpath:/,classpath:/config/,file:./,file:./config/";
+	 * @param event
+	 */
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
 		List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();
 		postProcessors.add(this);
