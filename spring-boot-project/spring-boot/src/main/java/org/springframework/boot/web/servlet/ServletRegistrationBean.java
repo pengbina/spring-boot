@@ -51,9 +51,9 @@ import org.springframework.util.StringUtils;
 public class ServletRegistrationBean<T extends Servlet> extends DynamicRegistrationBean<ServletRegistration.Dynamic> {
 
 	private static final String[] DEFAULT_MAPPINGS = { "/*" };
-
+    //存放目标Servlet实例
 	private T servlet;
-
+    //存放Servlet的urlMapping
 	private Set<String> urlMappings = new LinkedHashSet<>();
 
 	private boolean alwaysMapUrl = true;

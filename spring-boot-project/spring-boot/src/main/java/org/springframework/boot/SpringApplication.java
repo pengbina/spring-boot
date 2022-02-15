@@ -358,8 +358,10 @@ public class SpringApplication {
 			//这一步主要是在容器刷新之前的准备动作。包含一个非常关键的操作：将启动类注入容器，为后续开启自动化配置奠定基础。
 			prepareContext(context, environment, listeners, applicationArguments, printedBanner);
 			//第五步:刷新容器（Spring上下文刷新）
+			//执行到这里，springBoot相关的处理工作已经结束，接下的工作就交给了spring
 			refreshContext(context);
 			//第六步:Spring容器后置处理(Spring上下文后置处理)
+			//扩展接口，设计模式中的模板方法，默认为空实现。如果有自定义需求，可以重写该方法。比如打印一些启动结束log，或者一些其它后置处理。
 			afterRefresh(context, applicationArguments);
 			stopWatch.stop();
 			if (this.logStartupInfo) {
@@ -424,17 +426,23 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments, Banner printedBanner) {
 		//设置容器环境，包括各种变量
 		context.setEnvironment(environment);
+		//执行容器后置处理
 		postProcessApplicationContext(context);
-		//调用之前准备好的ApplicationContextInitializer
+		//调用之前准备好的ApplicationContextInitializer（包括spring.factories和自定义的实例）
+		//调用初始化化器
 		applyInitializers(context);
+		//发送容器已经准备好的事件，通知各监听器
 		listeners.contextPrepared(context);
 		if (this.logStartupInfo) {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
+
+		//注册启动参数bean,这里将容器指定的参数封装成bean,注入容器
 		// Add boot specific singleton beans
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+		//设置banner
 		if (printedBanner != null) {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
 		}
@@ -445,11 +453,18 @@ public class SpringApplication {
 		if (this.lazyInitialization) {
 			context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
 		}
+		//获取我们的启动类指定的参数，可以是多个
 		// Load the sources
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
+		//加载我们的启动类，将启动类注入容器
+		//很明显，获取了this.primarySources属性，也就是我们的启动类SpringBootDemoApplication.class，
+		// 我们接着看load(context, sources.toArray(new Object[0]));
 		load(context, sources.toArray(new Object[0]));
 		//将SpringApplication自己拥有的ApplicationListener加入到ApplicationContext,发送ApplicationPreparedEvent
+		//发布容器已加载事件
+		//通知监听器，容器已准备就绪
+		//主要还是针对一些日志等监听器的响应处理。
 		listeners.contextLoaded(context);
 	}
 
@@ -644,6 +659,9 @@ public class SpringApplication {
 	 * class before falling back to a suitable default.
 	 * @return the application context (not yet refreshed)
 	 * @see #setApplicationContextClass(Class)
+	 *
+	 * 这里创建容器的类型 还是根据webApplicationType进行判断的，该类型为SERVLET类型，
+	 * 所以会通过反射装载对应的字节码，也就是AnnotationConfigServletWebServerApplicationContext
 	 */
 	protected ConfigurableApplicationContext createApplicationContext() {
 		Class<?> contextClass = this.applicationContextClass;
@@ -696,10 +714,18 @@ public class SpringApplication {
 	 * refreshed.
 	 * @param context the configured ApplicationContext (not refreshed yet)
 	 * @see ConfigurableApplicationContext#refresh()
+	 * 调用初始化器
+	 *
+	 * 这里终于用到了在创建SpringApplication实例时设置的初始化器了，依次对它们进行遍历，并调用initialize方法。
+	 * 我们也可以自定义初始化器，并实现initialize方法，
+	 * 然后放入META-INF/spring.factories配置文件中Key为：org.springframework.context.ApplicationContextInitializer的value中，
+	 * 这里我们自定义的初始化器就会被调用，是我们项目初始化的一种方式
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void applyInitializers(ConfigurableApplicationContext context) {
+		//1.从SpringApplication类中的initializers集合获取所有的ApplicationContextInitializer
 		for (ApplicationContextInitializer initializer : getInitializers()) {
+			//2.循环调用ApplicationContextInitializer中的initialize方法
 			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(initializer.getClass(),
 					ApplicationContextInitializer.class);
 			Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
@@ -824,6 +850,7 @@ public class SpringApplication {
 	 */
 	protected void refresh(ApplicationContext applicationContext) {
 		Assert.isInstanceOf(AbstractApplicationContext.class, applicationContext);
+		//调用创建的容器applicationContext中的refresh()方法
 		((AbstractApplicationContext) applicationContext).refresh();
 	}
 
@@ -835,16 +862,26 @@ public class SpringApplication {
 	protected void afterRefresh(ConfigurableApplicationContext context, ApplicationArguments args) {
 	}
 
+	/**
+	 * 我们也可以自定义一些ApplicationRunner或者CommandLineRunner，实现其run方法，并注入到Spring容器中,
+	 * 在SpringBoot启动完成后，会执行所有的runner的run方法
+	 * @param context
+	 * @param args
+	 */
 	private void callRunners(ApplicationContext context, ApplicationArguments args) {
 		List<Object> runners = new ArrayList<>();
+		//获取容器中所有的ApplicationRunner的Bean实例
 		runners.addAll(context.getBeansOfType(ApplicationRunner.class).values());
+		//获取容器中所有的CommandLineRunner的Bean实例
 		runners.addAll(context.getBeansOfType(CommandLineRunner.class).values());
 		AnnotationAwareOrderComparator.sort(runners);
 		for (Object runner : new LinkedHashSet<>(runners)) {
 			if (runner instanceof ApplicationRunner) {
+				//执行ApplicationRunner的run方法
 				callRunner((ApplicationRunner) runner, args);
 			}
 			if (runner instanceof CommandLineRunner) {
+				//执行CommandLineRunner的run方法
 				callRunner((CommandLineRunner) runner, args);
 			}
 		}
@@ -1196,10 +1233,17 @@ public class SpringApplication {
 	 * primary sources specified in the constructor with any additional ones that have
 	 * been {@link #setSources(Set) explicitly set}.
 	 * @return an immutable set of all sources
+	 *
+	 * 加载启动指定类（重点）
+	 * 在创建SpringApplication实例时，先将SpringBootDemoApplication.class存储在this.primarySources属性中，
+	 * 现在就是用到这个属性的时候了，我们来看看getAllSources（）
+	 * 很明显，获取了this.primarySources属性，也就是我们的启动类SpringBootDemoApplication.class，
+	 * 我们接着看load(context, sources.toArray(new Object[0]));
 	 */
 	public Set<Object> getAllSources() {
 		Set<Object> allSources = new LinkedHashSet<>();
 		if (!CollectionUtils.isEmpty(this.primarySources)) {
+			//获取primarySources属性，也就是之前存储的SpringBootDemoApplication.class
 			allSources.addAll(this.primarySources);
 		}
 		if (!CollectionUtils.isEmpty(this.sources)) {

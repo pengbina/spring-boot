@@ -39,6 +39,10 @@ import org.springframework.web.WebApplicationInitializer;
  * @author Phillip Webb
  * @since 1.4.0
  * @see WebApplicationInitializer
+ *
+ * ServletContextInitializer是 Servlet 容器初始化的时候，提供的初始化接口。
+ * 所以，Servlet 容器初始化会获取并触发所有的FilterRegistrationBean、FilterRegistrationBean、ServletListenerRegistrationBean实例中onStartup方法
+ *
  */
 @FunctionalInterface
 public interface ServletContextInitializer {

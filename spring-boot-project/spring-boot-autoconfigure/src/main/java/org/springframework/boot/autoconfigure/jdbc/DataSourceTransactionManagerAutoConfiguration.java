@@ -42,8 +42,18 @@ import org.springframework.transaction.PlatformTransactionManager;
  * @author Andy Wilkinson
  * @author Kazuki Shimizu
  * @since 1.0.0
+ *
+ * 事务自动配置类
+ * 在spring.factories中配置了事务管理器自动配置类DataSourceTransactionManagerAutoConfiguration
+ *
+ * 只要我们导入了spring-boot-starter-jdbc场景启动器，并且我们没有自定义DataSourceTransactionManager，
+ * 那么事务管理器自动配置类DataSourceTransactionManagerAutoConfiguration会自动为我们创建DataSourceTransactionManager并注入Spring容器中。
+ * 但是这还不够，我们前面还是需要通过@EnableTransactionManagement开启事务呢，如果不开启事务，@Transactional是不起任何作用的。
+ *
  */
 @Configuration(proxyBeanMethods = false)
+//在类路径下有这个类存在PlatformTransactionManager时，这个配置类才会生效
+//而前面我们已经引入了spring-boot-starter-jdbc，那自然是存在了
 @ConditionalOnClass({ JdbcTemplate.class, PlatformTransactionManager.class })
 @AutoConfigureOrder(Ordered.LOWEST_PRECEDENCE)
 @EnableConfigurationProperties(DataSourceProperties.class)
@@ -54,9 +64,12 @@ public class DataSourceTransactionManagerAutoConfiguration {
 	static class DataSourceTransactionManagerConfiguration {
 
 		@Bean
+		//没有当Spring容器中不存在PlatformTransactionManager这个对象时，创建DataSourceTransactionManager
+        //也就是如果我们自定义了DataSourceTransactionManager并注入Spring容器，这里将不会执行
 		@ConditionalOnMissingBean(PlatformTransactionManager.class)
 		DataSourceTransactionManager transactionManager(DataSource dataSource,
 				ObjectProvider<TransactionManagerCustomizers> transactionManagerCustomizers) {
+			//创建DataSourceTransactionManager注入Spring容器，并且把dataSource传进去
 			DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
 			transactionManagerCustomizers.ifAvailable((customizers) -> customizers.customize(transactionManager));
 			return transactionManager;

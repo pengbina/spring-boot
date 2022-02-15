@@ -67,7 +67,7 @@ public class ServletListenerRegistrationBean<T extends EventListener> extends Re
 		types.add(ServletContextListener.class);
 		SUPPORTED_TYPES = Collections.unmodifiableSet(types);
 	}
-
+	//存放了目标listener
 	private T listener;
 
 	/**

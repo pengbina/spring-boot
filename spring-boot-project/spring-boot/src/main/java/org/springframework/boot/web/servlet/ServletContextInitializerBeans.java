@@ -58,6 +58,9 @@ import org.springframework.util.MultiValueMap;
  * @author Phillip Webb
  * @author Brian Clozel
  * @since 1.4.0
+ *
+ * ServletContextInitializerBeans对象是对ServletContextInitializer的一种包装
+ *
  */
 public class ServletContextInitializerBeans extends AbstractCollection<ServletContextInitializer> {
 
@@ -73,7 +76,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 	private final MultiValueMap<Class<?>, ServletContextInitializer> initializers;
 
 	private final List<Class<? extends ServletContextInitializer>> initializerTypes;
-
+	//存放所有的ServletContextInitializer
 	private List<ServletContextInitializer> sortedList;
 
 	@SafeVarargs
@@ -82,7 +85,9 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 		this.initializers = new LinkedMultiValueMap<>();
 		this.initializerTypes = (initializerTypes.length != 0) ? Arrays.asList(initializerTypes)
 				: Collections.singletonList(ServletContextInitializer.class);
+		//执行addServletContextInitializerBeans
 		addServletContextInitializerBeans(beanFactory);
+		//执行addAdaptableBeans
 		addAdaptableBeans(beanFactory);
 		List<ServletContextInitializer> sortedInitializers = this.initializers.values().stream()
 				.flatMap((value) -> value.stream().sorted(AnnotationAwareOrderComparator.INSTANCE))
@@ -92,9 +97,11 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 	}
 
 	private void addServletContextInitializerBeans(ListableBeanFactory beanFactory) {
+		//从Spring容器中获取所有ServletContextInitializer.class 类型的Bean
 		for (Class<? extends ServletContextInitializer> initializerType : this.initializerTypes) {
 			for (Entry<String, ? extends ServletContextInitializer> initializerBean : getOrderedBeansOfType(beanFactory,
 					initializerType)) {
+				//添加到具体的集合中
 				addServletContextInitializerBean(initializerBean.getKey(), initializerBean.getValue(), beanFactory);
 			}
 		}
@@ -102,16 +109,20 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	private void addServletContextInitializerBean(String beanName, ServletContextInitializer initializer,
 			ListableBeanFactory beanFactory) {
+		//判断ServletRegistrationBean类型
 		if (initializer instanceof ServletRegistrationBean) {
 			Servlet source = ((ServletRegistrationBean<?>) initializer).getServlet();
+			//将ServletRegistrationBean加入到集合中
 			addServletContextInitializerBean(Servlet.class, beanName, initializer, beanFactory, source);
 		}
+		//判断FilterRegistrationBean类型
 		else if (initializer instanceof FilterRegistrationBean) {
 			Filter source = ((FilterRegistrationBean<?>) initializer).getFilter();
 			addServletContextInitializerBean(Filter.class, beanName, initializer, beanFactory, source);
 		}
 		else if (initializer instanceof DelegatingFilterProxyRegistrationBean) {
 			String source = ((DelegatingFilterProxyRegistrationBean) initializer).getTargetBeanName();
+			//将ServletRegistrationBean加入到集合中
 			addServletContextInitializerBean(Filter.class, beanName, initializer, beanFactory, source);
 		}
 		else if (initializer instanceof ServletListenerRegistrationBean) {
@@ -126,6 +137,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	private void addServletContextInitializerBean(Class<?> type, String beanName, ServletContextInitializer initializer,
 			ListableBeanFactory beanFactory, Object source) {
+		//加入到initializers中
 		this.initializers.add(type, initializer);
 		if (source != null) {
 			// Mark the underlying source as seen in case it wraps an existing bean
@@ -149,6 +161,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	@SuppressWarnings("unchecked")
 	protected void addAdaptableBeans(ListableBeanFactory beanFactory) {
+		//从beanFactory获取所有Servlet.class和Filter.class类型的Bean，并封装成RegistrationBean对象，加入到集合中
 		MultipartConfigElement multipartConfig = getMultipartConfig(beanFactory);
 		addAsRegistrationBean(beanFactory, Servlet.class, new ServletRegistrationBeanAdapter(multipartConfig));
 		addAsRegistrationBean(beanFactory, Filter.class, new FilterRegistrationBeanAdapter());
@@ -171,12 +184,14 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	private <T, B extends T> void addAsRegistrationBean(ListableBeanFactory beanFactory, Class<T> type,
 			Class<B> beanType, RegistrationBeanAdapter<T> adapter) {
+		//从Spring容器中获取所有的Servlet.class和Filter.class类型的Bean
 		List<Map.Entry<String, B>> entries = getOrderedBeansOfType(beanFactory, beanType, this.seen);
 		for (Entry<String, B> entry : entries) {
 			String beanName = entry.getKey();
 			B bean = entry.getValue();
 			if (this.seen.add(bean)) {
 				// One that we haven't already seen
+				//创建Servlet.class和Filter.class包装成RegistrationBean对象
 				RegistrationBean registration = adapter.createRegistrationBean(beanName, bean, entries.size());
 				int order = getOrder(bean);
 				registration.setOrder(order);
@@ -237,6 +252,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 
 	@Override
 	public Iterator<ServletContextInitializer> iterator() {
+		//返回所有的ServletContextInitializer
 		return this.sortedList.iterator();
 	}
 
@@ -275,6 +291,8 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 			if (name.equals(DISPATCHER_SERVLET_NAME)) {
 				url = "/"; // always map the main dispatcherServlet to "/"
 			}
+			//还是将Servlet.class实例封装成ServletRegistrationBean对象
+			//这和我们自己创建ServletRegistrationBean对象是一模一样的
 			ServletRegistrationBean<Servlet> bean = new ServletRegistrationBean<>(source, url);
 			bean.setName(name);
 			bean.setMultipartConfig(this.multipartConfig);
@@ -288,6 +306,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 	 */
 	private static class FilterRegistrationBeanAdapter implements RegistrationBeanAdapter<Filter> {
 
+		//Filter.class实例封装成FilterRegistrationBean对象
 		@Override
 		public RegistrationBean createRegistrationBean(String name, Filter source, int totalNumberOfSourceBeans) {
 			FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(source);

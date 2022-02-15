@@ -47,8 +47,13 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * @author Stephane Nicoll
  * @since 1.3.0
+ *
+ * 在spring.factories中配置了事务自动开启配置类TransactionAutoConfiguration
+ *
  */
 @Configuration(proxyBeanMethods = false)
+//和DataSourceTransactionManagerAutoConfiguration中是一样的
+//引入了spring-boot-starter-jdbc，那自然是存在了PlatformTransactionManager
 @ConditionalOnClass(PlatformTransactionManager.class)
 @AutoConfigureAfter({ JtaAutoConfiguration.class, HibernateJpaAutoConfiguration.class,
 		DataSourceTransactionManagerAutoConfiguration.class, Neo4jDataAutoConfiguration.class })

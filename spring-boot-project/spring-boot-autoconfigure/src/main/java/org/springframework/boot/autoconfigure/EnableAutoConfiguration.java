@@ -107,6 +107,7 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
  * POST                       /shutdown                   关闭应用程序，要求endpoints.shutdown.enabled设置为true
  * GET                        /trace                      提供基本的HTTP请求跟踪信息(时间戳，HTTP头等)
  *
+ * 自动配置包注解 @AutoConfigurationPackage
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

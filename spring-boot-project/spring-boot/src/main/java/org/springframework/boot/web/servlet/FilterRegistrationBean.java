@@ -41,7 +41,7 @@ import org.springframework.util.Assert;
  * @see DelegatingFilterProxyRegistrationBean
  */
 public class FilterRegistrationBean<T extends Filter> extends AbstractFilterRegistrationBean<T> {
-
+	//存放目标Filter对象
 	private T filter;
 
 	/**
