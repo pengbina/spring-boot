@@ -118,6 +118,7 @@ public class ServletContextInitializerBeans extends AbstractCollection<ServletCo
 		//判断FilterRegistrationBean类型
 		else if (initializer instanceof FilterRegistrationBean) {
 			Filter source = ((FilterRegistrationBean<?>) initializer).getFilter();
+			//将ServletRegistrationBean加入到集合中
 			addServletContextInitializerBean(Filter.class, beanName, initializer, beanFactory, source);
 		}
 		else if (initializer instanceof DelegatingFilterProxyRegistrationBean) {

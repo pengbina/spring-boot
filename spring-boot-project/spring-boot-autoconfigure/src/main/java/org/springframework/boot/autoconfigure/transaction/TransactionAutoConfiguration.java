@@ -50,6 +50,17 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * 在spring.factories中配置了事务自动开启配置类TransactionAutoConfiguration
  *
+ *
+ * 我们看到TransactionAutoConfiguration这个自动配置类必须要在DataSourceTransactionManagerAutoConfiguration这个配置类之后才能生效，
+ * 也就是前面我们已经往Spring容器中注入了DataSourceTransactionManager这个对象才执行这个配置类，然后通过
+ * @EnableTransactionManagement这个注解开启事务，其实和我们自己使用@EnableTransactionManagement是一样的
+ * 因此，只要我们在SpringBoot中引入了spring-boot-starter-jdbc这个场景启动器，就会帮我们自动开启事务了，我们只需要使用@Transactional就可以了
+ *
+ *
+ * 我们看到mybatis-spring-boot-starter这个场景启动器是引入了spring-boot-starter-jdbc这个场景启动器的，
+ * 因此只要我们在SpringBoot中使用Mybaits，是自动帮我们开启了Spring事务的
+ *
+ * springboot 开启事物很简单，只需要加一行注解@Transactional就可以了，前提你用的是jdbctemplate, jpa, Mybatis，这种常见的orm。
  */
 @Configuration(proxyBeanMethods = false)
 //和DataSourceTransactionManagerAutoConfiguration中是一样的
@@ -99,6 +110,8 @@ public class TransactionAutoConfiguration {
 
 		}
 
+		//重点：通过@EnableTransactionManagement注解开启事物
+		//可以看到和我们自己使用的@EnableTransactionManagement是一样的
 		@Configuration(proxyBeanMethods = false)
 		@EnableTransactionManagement(proxyTargetClass = true)
 		@ConditionalOnProperty(prefix = "spring.aop", name = "proxy-target-class", havingValue = "true",
